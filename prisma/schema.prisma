@@ -1,0 +1,53 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Destinasi {
+  id         Int     @id @default(autoincrement())
+  nama       String
+  lokasi     String
+  deskripsi  String?
+  hargaDasar Int     @default(0)
+  sesi       Sesi[]
+}
+
+model Sesi {
+  id           Int       @id @default(autoincrement())
+  destinasiId  Int
+  destinasi    Destinasi @relation(fields: [destinasiId], references: [id])
+  tanggal      String // YYYY-MM-DD
+  jamMulai     String // HH:MM
+  jamSelesai   String // HH:MM
+  kuota        Int
+  sisaKuota    Int
+  hargaTiket   Int
+  tiket        Tiket[]
+}
+
+model Tiket {
+  id          Int       @id @default(autoincrement())
+  kode        String    @unique
+  sesiId      Int
+  sesi        Sesi      @relation(fields: [sesiId], references: [id])
+  namaPembeli String
+  kontak      String?
+  hargaBeli   Int
+  masukAt     String? // ISO text, terisi saat scan MASUK
+  keluarAt    String? // ISO text, terisi saat scan KELUAR
+  scanLog     ScanLog[]
+}
+
+model ScanLog {
+  id             Int    @id @default(autoincrement())
+  tiketId        Int
+  tiket          Tiket  @relation(fields: [tiketId], references: [id])
+  jenis          String // MASUK | KELUAR
+  waktu          String // ISO text
+  idempotencyKey String @unique
+  channel        String @default("ONLINE")
+}
