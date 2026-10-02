@@ -22,6 +22,9 @@ export default function SesiPage() {
   const [formS, setFormS] = useState({ destinasiId: "", tanggal: "", jamMulai: "", jamSelesai: "", kuota: "", hargaTiket: "" });
   const [formD, setFormD] = useState({ nama: "", lokasi: "", hargaDasar: "0" });
 
+  const [formB, setFormB] = useState({ sesiId: "", jumlah: "1", namaPembeli: "", kontak: "" });
+  const [hasilBeli, setHasilBeli] = useState<string[]>([]);
+
   const muat = () => {
     fetch("/api/destinasi").then((r) => r.json()).then(setDest);
     fetch("/api/sesi").then((r) => r.json()).then(setSesi);
@@ -94,6 +97,55 @@ export default function SesiPage() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="rounded border bg-white p-4">
+        <h2 className="mb-2 text-lg font-semibold">Beli Tiket</h2>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const r = await fetch("/api/tiket/beli", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                sesiId: Number(formB.sesiId),
+                jumlah: Number(formB.jumlah),
+                namaPembeli: formB.namaPembeli,
+                kontak: formB.kontak,
+              }),
+            });
+            const j = await r.json();
+            if (r.ok) {
+              setHasilBeli(j.tiket.map((t: { kode: string }) => t.kode));
+              setMsg(`Berhasil beli ${j.jumlah} tiket`);
+              setFormB({ sesiId: "", jumlah: "1", namaPembeli: "", kontak: "" });
+            } else {
+              setHasilBeli([]);
+              setMsg(`Gagal: ${j.error}`);
+            }
+            muat();
+          }}
+          className="grid grid-cols-2 gap-2 md:grid-cols-5"
+        >
+          <select required value={formB.sesiId} onChange={(e) => setFormB({ ...formB, sesiId: e.target.value })} className="rounded border p-2">
+            <option value="">— Pilih sesi —</option>
+            {sesi.filter((s) => s.sisaKuota > 0).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.tanggal} {s.jamMulai}–{s.jamSelesai} (sisa {s.sisaKuota})
+              </option>
+            ))}
+          </select>
+          <input required type="number" min={1} max={100} placeholder="Jumlah" value={formB.jumlah} onChange={(e) => setFormB({ ...formB, jumlah: e.target.value })} className="rounded border p-2" />
+          <input required placeholder="Nama pembeli" value={formB.namaPembeli} onChange={(e) => setFormB({ ...formB, namaPembeli: e.target.value })} className="rounded border p-2" />
+          <input placeholder="Kontak (opsional)" value={formB.kontak} onChange={(e) => setFormB({ ...formB, kontak: e.target.value })} className="rounded border p-2" />
+          <button className="rounded bg-blue-700 px-4 py-2 text-white">Beli Tiket</button>
+        </form>
+        {hasilBeli.length > 0 && (
+          <div className="mt-3 rounded bg-emerald-50 p-3 text-sm">
+            <p className="font-semibold">Kode tiket:</p>
+            <ul className="list-disc pl-5 font-mono">{hasilBeli.map((k) => <li key={k}>{k}</li>)}</ul>
+          </div>
+        )}
       </section>
 
       <section className="rounded border bg-white p-4">
